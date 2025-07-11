@@ -1,0 +1,29 @@
+{% extends "arsip/base_arsip.html" %}
+{% load static %}
+
+{% block title %}Upload Arsip{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-md-8">
+    <div class="card">
+      <div class="card-header bg-primary text-white">
+        <h4 class="mb-0">Upload Arsip Baru</h4>
+      </div>
+      <div class="card-body">
+        <form method="post" enctype="multipart/form-data">
+          {% csrf_token %}
+          {{ form.as_p }}
+          <div class="d-flex justify-content-end">
+            <button type="submit" class="btn btn-primary">Upload</button>
+            <a href="{% url 'arsip:daftar_arsip' %}" class="btn btn-secondary ms-2">Batal</a>
+          </div>
+        </form>
+        <div class="mt-3 alert alert-info">
+          <strong>Catatan:</strong> Arsip yang Anda unggah akan ditinjau terlebih dahulu oleh editor/admin sebelum dipublikasikan.
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

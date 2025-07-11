@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <h2>Verifikasi Arsip</h2>
+    <div class="card mb-4">
+        <div class="card-body">
+            <h5 class="card-title">{{ object.judul_arsip }}</h5>
+            <p class="card-text">{{ object.deskripsi }}</p>
+            <a href="{{ object.lokasi_digital.url }}" class="btn btn-sm btn-outline-primary" target="_blank">
+                Lihat Dokumen
+            </a>
+        </div>
+    </div>
+    
+    <form method="post">
+        {% csrf_token %}
+        <div class="mb-3">
+            <label class="form-label">Status Verifikasi</label>
+            {{ form.status_verifikasi }}
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Catatan Verifikasi</label>
+            {{ form.catatan_verifikasi }}
+        </div>
+        <button type="submit" class="btn btn-primary">Simpan Keputusan</button>
+    </form>
+</div>
+{% endblock %}

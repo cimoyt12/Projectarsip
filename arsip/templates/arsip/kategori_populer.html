@@ -1,0 +1,24 @@
+{% extends "arsip/base_arsip.html" %}
+{% block title %}Kategori Populer{% endblock %}
+{% block content %}
+<h1 class="mb-4">Kategori Populer</h1>
+<div class="row row-cols-1 row-cols-md-4 g-4">
+  {% for kategori in kategori_populer %}
+    <div class="col mb-4 d-flex align-items-stretch">
+      <div class="card text-center h-100 w-100">
+        <div class="card-body d-flex flex-column">
+          <i class="bi bi-folder text-primary fs-1 mb-3"></i>
+          <h5 class="card-title">{{ kategori.nama }}</h5>
+          <p class="card-text text-muted">{{ kategori.deskripsi }}</p>
+          <p class="text-muted">{{ kategori.jumlah_arsip }} dokumen</p>
+        </div>
+        <div class="card-footer bg-white mt-auto">
+          <a href="{% url 'arsip:arsip_per_kategori' kategori.id %}" class="btn btn-outline-primary w-100">
+            Lihat Arsip <i class="bi bi-arrow-right"></i>
+          </a>
+        </div>
+      </div>
+    </div>
+  {% endfor %}
+</div>
+{% endblock %}

@@ -1,0 +1,152 @@
+{% extends "arsip/base_arsip.html" %}
+{% load arsip_extras %}
+{% load static %}
+
+{% block title %}Detail Arsip - Sistem Arsip Digital{% endblock %}
+
+{% block content %}
+<div class="card mb-4">
+    <div class="card-header bg-primary text-white">
+        <div class="d-flex justify-content-between align-items-center">
+            <h2 class="mb-0">{{ arsip.judul_arsip }}</h2>
+            <div>
+                <span class="badge bg-light text-dark me-1">{{ arsip.format_file|upper }}</span>
+                <span class="badge bg-info">{{ arsip.kategori.nama }}</span>
+                <span class="badge bg-success ms-1">{{ arsip.status_akses|title }}</span>
+            </div>
+        </div>
+    </div>
+    
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-8">
+                <div class="mb-4">
+                    <h4>Deskripsi</h4>
+                    <p>{{ arsip.deskripsi }}</p>
+                </div>
+                
+                <div class="mb-4">
+                    <h4>Metadata</h4>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <dl class="row">
+                                <dt class="col-sm-4">Diunggah Oleh</dt>
+                                <dd class="col-sm-8">{{ arsip.dibuat_oleh.username }}</dd>
+                                
+                                <dt class="col-sm-4">Tanggal Unggah</dt>
+                                <dd class="col-sm-8">{{ arsip.tanggal_diterima|date:"d F Y" }}</dd>
+                                
+                                <dt class="col-sm-4">Ukuran File</dt>
+                                <dd class="col-sm-8">{{ arsip.ukuran_file|filesizeformat }}</dd>
+                            </dl>
+                        </div>
+                        <div class="col-md-6">
+                            <dl class="row">
+                                <dt class="col-sm-4">Diakses</dt>
+                                <dd class="col-sm-8">{{ arsip.diakses }} kali</dd>
+
+                                <dt class="col-sm-4">Kode Arsip</dt>
+                                <dd class="col-sm-8">{{ arsip.kode_arsip }}</dd>
+                            </dl>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="mb-4">
+                    <h4>Tag</h4>
+                    <div class="d-flex flex-wrap gap-2">
+                        {% for tag in arsip.tags.all %}
+                          <span class="badge bg-secondary">{{ tag.nama }}</span>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-body text-center">
+                        <i class="bi bi-file-earmark-pdf text-danger display-1 mb-3"></i>
+                        <p class="text-muted">{{ arsip.lokasi_digital.name|default:'-'|cut:'media/' }}</p>
+                        <div class="d-grid gap-2">
+                            {% if arsip.lokasi_digital %}
+                            <a href="{{ arsip.lokasi_digital.url }}" class="btn btn-primary" download>
+                                <i class="bi bi-download"></i> Unduh Dokumen
+                            </a>
+                            <button type="button" class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#previewModal">
+                                <i class="bi bi-eye"></i> Pratinjau
+                            </button>
+                            {% else %}
+                            <button class="btn btn-secondary" disabled>File tidak tersedia</button>
+                            {% endif %}
+                        </div>
+                        
+                        <!-- Modal Preview -->
+                        <div class="modal fade" id="previewModal" tabindex="-1" aria-labelledby="previewModalLabel" aria-hidden="true">
+                          <div class="modal-dialog modal-xl modal-dialog-centered">
+                            <div class="modal-content">
+                              <div class="modal-header">
+                                <h5 class="modal-title" id="previewModalLabel">Pratinjau Dokumen</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                              </div>
+                              <div class="modal-body">
+                                {% if arsip.lokasi_digital.url|lower|endswith:'.pdf' %}
+                                  <iframe src="{{ arsip.lokasi_digital.url }}" width="100%" height="600px" style="border:none;"></iframe>
+                                {% elif arsip.lokasi_digital.url|lower|endswith:'.docx' %}
+                                  <iframe src="https://view.officeapps.live.com/op/embed.aspx?src={{ arsip_url_absolute }}" width="100%" height="600px" style="border:none;"></iframe>
+                                {% else %}
+                                  <p class="text-muted">Pratinjau hanya tersedia untuk file PDF atau DOCX.</p>
+                                {% endif %}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                        
+                        <hr class="my-4">
+                        
+                        <h5>Bagikan</h5>
+                        <div class="d-flex justify-content-center gap-2">
+                            <a href="#" class="btn btn-outline-primary"><i class="bi bi-envelope"></i></a>
+                            <a href="#" class="btn btn-outline-info"><i class="bi bi-link-45deg"></i></a>
+                            <a href="#" class="btn btn-outline-success"><i class="bi bi-whatsapp"></i></a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="card-footer">
+        <div class="d-flex justify-content-between">
+            <div>
+                <a href="{% url 'arsip:kategori_list' %}" class="btn btn-outline-secondary">
+                    <i class="bi bi-arrow-left"></i> Kembali ke Daftar
+                </a>
+            </div>
+            <div>
+                {% if user.is_authenticated %}
+                <a href="#" class="btn btn-warning me-1"><i class="bi bi-pencil"></i> Edit</a>
+                <a href="#" class="btn btn-danger"><i class="bi bi-trash"></i> Hapus</a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Arsip Terkait -->
+<h3 class="mb-4">Arsip Terkait</h3>
+<div class="row row-cols-1 row-cols-md-3 g-4">
+    {% for terkait in arsip_terkait %}
+      <div class="col">
+        <div class="card h-100 arsip-card">
+          <div class="card-body">
+            <h5 class="card-title">{{ terkait.judul_arsip }}</h5>
+            <p class="card-text">{{ terkait.deskripsi|truncatechars:80 }}</p>
+          </div>
+          <div class="card-footer bg-white">
+            <a href="{% url 'arsip:detail_arsip' terkait.id %}" class="btn btn-sm btn-outline-primary">Lihat Detail</a>
+          </div>
+        </div>
+      </div>
+    {% endfor %}
+</div>
+{% endblock %}

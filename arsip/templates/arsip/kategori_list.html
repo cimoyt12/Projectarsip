@@ -1,0 +1,28 @@
+{% extends "arsip/base_arsip.html" %}
+{% load static %}
+
+{% block title %}Kategori Arsip - Sistem Arsip Digital{% endblock %}
+
+{% block content %}
+<h1 class="mb-4">Kategori Arsip</h1>
+
+<div class="row">
+    {% for kategori in kategori_list %}
+  <div class="col-md-3 mb-4">
+    <div class="card text-center h-100">
+      <div class="card-body">
+        <i class="bi bi-folder text-primary fs-1 mb-3"></i>
+        <h5 class="card-title">{{ kategori.nama }}</h5>
+        <p class="card-text text-muted">{{ kategori.deskripsi }}</p>
+        <p class="text-muted">{{ kategori.jumlah_arsip }} dokumen</p>
+      </div>
+      <div class="card-footer bg-white">
+        <a href="{% url 'arsip:arsip_per_kategori' kategori.id %}" class="btn btn-outline-primary w-100">
+          Lihat Arsip <i class="bi bi-arrow-right"></i>
+        </a>
+      </div>
+    </div>
+  </div>
+{% endfor %}
+</div>
+{% endblock %}

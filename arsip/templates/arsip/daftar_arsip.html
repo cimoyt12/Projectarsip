@@ -1,0 +1,100 @@
+{% extends "arsip/base_arsip.html" %}
+{% load static %}
+
+{% block title %}Semua Arsip - Sistem Arsip Digital{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1 class="mb-0">Daftar Arsip Digital</h1>
+    <a href="#" class="btn btn-success">
+        <i class="bi bi-plus-circle"></i> Tambah Arsip
+    </a>
+</div>
+
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                Filter Arsip
+            </div>
+            <div class="card-body">
+                <h5 class="card-title">Kategori</h5>
+                <div class="list-group">
+                    <a href="{% url 'arsip:daftar_arsip' %}" class="list-group-item list-group-item-action{% if not request.GET.kategori %} active{% endif %}">
+                        Semua Kategori
+                    </a>
+                    {% for kategori in kategori_list %}
+                    <a href="{% url 'arsip:daftar_arsip' %}?kategori={{ kategori.id }}" class="list-group-item list-group-item-action{% if request.GET.kategori|default:'' == kategori.id|stringformat:'s' %} active{% endif %}">
+                        {{ kategori.nama }}
+                    </a>
+                    {% endfor %}
+                </div>
+                
+                <h5 class="card-title mt-4">Status</h5>
+                <div class="list-group">
+                    <a href="{% url 'arsip:daftar_arsip' %}{% if request.GET.kategori %}?kategori={{ request.GET.kategori }}{% endif %}" class="list-group-item list-group-item-action{% if not request.GET.status_akses %} active{% endif %}">Semua Status</a>
+                    <a href="{% url 'arsip:daftar_arsip' %}?status_akses=publik{% if request.GET.kategori %}&kategori={{ request.GET.kategori }}{% endif %}" class="list-group-item list-group-item-action{% if request.GET.status_akses == 'publik' %} active{% endif %}">Publik</a>
+                    <a href="{% url 'arsip:daftar_arsip' %}?status_akses=internal{% if request.GET.kategori %}&kategori={{ request.GET.kategori }}{% endif %}" class="list-group-item list-group-item-action{% if request.GET.status_akses == 'internal' %} active{% endif %}">Internal</a>
+                    <a href="{% url 'arsip:daftar_arsip' %}?status_akses=rahasia{% if request.GET.kategori %}&kategori={{ request.GET.kategori }}{% endif %}" class="list-group-item list-group-item-action{% if request.GET.status_akses == 'rahasia' %} active{% endif %}">Rahasia</a>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-9">
+        <div class="card">
+            <div class="card-header bg-light">
+                <div class="d-flex justify-content-between align-items-center">
+                    <span> Menampilkan: {{ total_arsip|default:'0' }} data Arsip</span>
+                    <div class="d-flex">
+                        <select class="form-select me-2">
+                            <option>Urutkan Terbaru</option>
+                            <option>Urutkan Terlama</option>
+                            <option>Judul A-Z</option>
+                            <option>Judul Z-A</option>
+                        </select>
+                        <div class="btn-group">
+                            <button class="btn btn-outline-secondary"><i class="bi bi-grid"></i></button>
+                            <button class="btn btn-secondary"><i class="bi bi-list"></i></button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card-body">
+                <div class="list-group">
+                    {% for arsip in page_obj %}
+                    <a href="{% url 'arsip:detail_arsip' arsip.id %}" class="list-group-item list-group-item-action">
+                        <div class="d-flex w-100 justify-content-between">
+                        <h5 class="mb-1">{{ arsip.judul_arsip }}</h5>
+                        <small>{{ arsip.tanggal_diterima }}</small>
+                        </div>
+                        <p class="mb-1">{{ arsip.deskripsi|truncatechars:100 }}</p>
+                        <small>Kategori: {{ arsip.kategori.nama }}</small>
+                    </a>
+                    {% empty %}
+                    <div class="alert alert-info">Belum ada arsip.</div>
+                    {% endfor %}
+                </div>
+                
+                <!-- Pagination -->
+                <nav class="mt-4">
+                <ul class="pagination justify-content-center">
+                    {% if page_obj.has_previous %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.previous_page_number }}">Sebelumnya</a>
+                    </li>
+                    {% endif %}
+                    <li class="page-item active"><a class="page-link" href="#">{{ page_obj.number }}</a></li>
+                    {% if page_obj.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.next_page_number }}">Berikutnya</a>
+                    </li>
+                    {% endif %}
+                </ul>
+                </nav>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
