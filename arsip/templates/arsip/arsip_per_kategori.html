@@ -1,0 +1,33 @@
+{% extends "arsip/base_arsip.html" %}
+{% load static %}
+
+{% block title %}Arsip Kategori {{ kategori.nama }} - Sistem Arsip Digital{% endblock %}
+
+{% block content %}
+<h1 class="mb-4">Arsip Kategori: {{ kategori.nama }}</h1>
+<p class="text-muted mb-4">{{ kategori.deskripsi }}</p>
+
+{% if arsip_list %}
+<div class="row row-cols-1 row-cols-md-3 g-4">
+    {% for arsip in arsip_list %}
+    <div class="col mb-4">
+        <div class="card h-100 arsip-card">
+            <div class="card-body">
+                <h5 class="card-title">{{ arsip.judul_arsip }}</h5>
+                <p class="card-text">{{ arsip.deskripsi|truncatechars:100 }}</p>
+            </div>
+            <div class="card-footer bg-white d-flex justify-content-between align-items-center">
+                <span class="badge bg-info">{{ arsip.status_akses|title }}</span>
+                <a href="{% url 'arsip:detail_arsip' arsip.id %}" class="btn btn-sm btn-outline-primary">Detail</a>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<div class="alert alert-info">Belum ada arsip pada kategori ini.</div>
+{% endif %}
+
+<a href="{% url 'arsip:kategori_list' %}" class="btn btn-secondary mt-4"><i class="bi bi-arrow-left"></i> Kembali ke
+    Daftar Kategori</a>
+{% endblock %}

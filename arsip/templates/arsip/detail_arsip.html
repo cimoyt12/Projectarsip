@@ -1,0 +1,324 @@
+{% extends "arsip/base_arsip.html" %}
+{% load arsip_extras %}
+{% load static %}
+
+{% block title %}Detail Arsip - Sistem Arsip Digital{% endblock %}
+
+{% block content %}
+<div class="card mb-4">
+    <div class="card-header bg-primary text-white">
+        <div class="d-flex justify-content-between align-items-center">
+            <h2 class="mb-0">{{ arsip.judul_arsip }}</h2>
+            <div>
+                <span class="badge bg-light text-dark me-1">{{ arsip.format_file|upper }}</span>
+                <span class="badge bg-info">{{ arsip.kategori.nama }}</span>
+                <span class="badge bg-success ms-1">{{ arsip.status_akses|title }}</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-8">
+                <div class="mb-4">
+                    <h4>Deskripsi</h4>
+                    <p>{{ arsip.deskripsi }}</p>
+                </div>
+
+                <div class="mb-4">
+                    <h4>Metadata</h4>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <dl class="row">
+                                <dt class="col-sm-4">Diunggah Oleh</dt>
+                                <dd class="col-sm-8">{{ arsip.dibuat_oleh.username }}</dd>
+
+                                <dt class="col-sm-4">Tanggal Unggah</dt>
+                                <dd class="col-sm-8">{{ arsip.tanggal_diterima|date:"d F Y" }}</dd>
+
+                                <dt class="col-sm-4">Ukuran File</dt>
+                                <dd class="col-sm-8">{{ arsip.get_ukuran_mb }} MB</dd> {# Menggunakan get_ukuran_mb #}
+                            </dl>
+                        </div>
+                        <div class="col-md-6">
+                            <dl class="row">
+                                <dt class="col-sm-4">Diakses</dt>
+                                <dd class="col-sm-8">{{ arsip.diakses }} kali</dd>
+
+                                <dt class="col-sm-4">Kode Arsip</dt>
+                                <dd class="col-sm-8">{{ arsip.kode_arsip }}</dd>
+
+                                <dt class="col-sm-4">Pembuat (Konten)</dt>
+                                <dd class="col-sm-8">{{ arsip.pembuat|default:'-' }}</dd> {# Menampilkan field pembuat #}
+                            </dl>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mb-4">
+                    <h4>Tag</h4>
+                    <div class="d-flex flex-wrap gap-2">
+                        {% for tag in arsip.tags.all %}
+                        <span class="badge bg-secondary">{{ tag.nama }}</span>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-body text-center">
+                        {% if arsip.format_file|lower == 'pdf' %}
+                            <i class="bi bi-file-earmark-pdf text-danger display-1 mb-3"></i>
+                        {% elif arsip.format_file|lower in 'doc,docx' %}
+                            <i class="bi bi-file-earmark-word text-primary display-1 mb-3"></i>
+                        {% elif arsip.format_file|lower in 'xls,xlsx' %}
+                            <i class="bi bi-file-earmark-excel text-success display-1 mb-3"></i>
+                        {% elif arsip.format_file|lower in 'ppt,pptx' %}
+                            <i class="bi bi-file-earmark-ppt text-warning display-1 mb-3"></i>
+                        {% elif arsip.format_file|lower in 'jpg,jpeg,png,gif,bmp,tiff' %}
+                            <i class="bi bi-file-earmark-image text-info display-1 mb-3"></i>
+                        {% else %}
+                            <i class="bi bi-file-earmark text-secondary display-1 mb-3"></i>
+                        {% endif %}
+                        
+                        <p class="text-muted">{{ arsip.lokasi_digital.name|default:'-'|cut:'media/' }}</p>
+                        <div class="d-grid gap-2">
+                            {% if arsip.lokasi_digital %}
+                            <a href="{% url 'arsip:download_digital_document' arsip.id %}" class="btn btn-primary" download>
+                                <i class="bi bi-download"></i> Unduh Dokumen
+                            </a>
+                            <button type="button" class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#fileViewerModal" data-arsip-id="{{ arsip.id }}" data-file-format="{{ arsip.format_file }}" data-file-url="{{ arsip.lokasi_digital.url }}" data-file-size="{{ arsip.ukuran_file }}">
+                                Pratinjau Dokumen
+                            </button>
+                            {% else %}
+                            <p class="text-danger">File tidak tersedia</p>
+                            {% endif %}
+                        </div>
+
+                        <hr class="my-4">
+
+                        <h5>Bagikan</h5>
+                        <div class="d-flex justify-content-center gap-2">
+                            <a href="#" class="btn btn-outline-primary"><i class="bi bi-envelope"></i></a>
+                            <a href="#" class="btn btn-outline-primary"><i class="bi bi-link-45deg"></i></a>
+                            <a href="#" class="btn btn-outline-primary"><i class="bi bi-whatsapp"></i></a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card-footer">
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <a href="{% url 'arsip:daftar_arsip' %}" class="btn btn-outline-secondary">
+                    <i class="bi bi-arrow-left"></i> Kembali ke Daftar
+                </a>
+            </div>
+            {% if user.is_authenticated %}
+            <div>
+                {# Tombol Edit: Hanya untuk Admin, Editor, atau Pemilik Arsip #}
+                {% if user.profile.role == 'Admin' or user.profile.role == 'Editor' or user == arsip.dibuat_oleh %}
+                <a href="{% url 'arsip:edit_arsip' arsip.id %}" class="btn btn-warning me-1">
+                    <i class="bi bi-pencil"></i> Edit
+                </a>
+                {% endif %}
+                
+                {# Tombol Hapus: Hanya untuk Admin atau Pemilik Arsip #}
+                {% if user.profile.role == 'Admin' or user == arsip.dibuat_oleh %}
+                <button type="button" class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#confirmDeleteModal">
+                    <i class="bi bi-trash"></i> Hapus
+                </button>
+                {% endif %}
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<h3 class="mb-4">Arsip Terkait</h3>
+<div class="row row-cols-1 row-cols-md-3 g-4">
+    {% for terkait in arsip_terkait %}
+    <div class="col">
+        <div class="card h-100 arsip-card">
+            <div class="card-body">
+                <h5 class="card-title">{{ terkait.judul_arsip }}</h5>
+                <p class="card-text">{{ terkait.deskripsi|truncatechars:80 }}</p>
+            </div>
+            <div class="card-footer bg-white">
+                <a href="{% url 'arsip:detail_arsip' terkait.id %}" class="btn btn-sm btn-outline-primary">Lihat
+                    Detail</a>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+{# Modal Konfirmasi Hapus #}
+<div class="modal fade" id="confirmDeleteModal" tabindex="-1" aria-labelledby="confirmDeleteModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-sm modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="confirmDeleteModalLabel">Konfirmasi Hapus</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                Apakah Anda yakin ingin menghapus arsip ini?<br>
+                <strong>{{ arsip.judul_arsip }}</strong>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                <form action="{% url 'arsip:hapus_arsip' arsip.id %}" method="post" class="d-inline">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-danger">Hapus</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="fileViewerModal" tabindex="-1" aria-labelledby="fileViewerModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="fileViewerModalLabel">Lihat Dokumen</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body text-center">
+                <div id="file-content-area" style="min-height: 400px; display: flex; align-items: center; justify-content: center; flex-direction: column;">
+                    <div id="loading-spinner" class="spinner-border text-primary" role="status" style="width: 3rem; height: 3rem; display: none;">
+                        <span class="visually-hidden">Memuat...</span>
+                    </div>
+                    <p class="text-muted mt-3" id="loading-message">Memuat konten file...</p>
+                    <div id="actual-preview-content" style="width:100%; height:100%;"></div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const fileViewerModal = document.getElementById('fileViewerModal');
+        const fileContentArea = document.getElementById('file-content-area');
+        const loadingSpinner = document.getElementById('loading-spinner');
+        const loadingMessage = document.getElementById('loading-message');
+        const actualPreviewContent = document.getElementById('actual-preview-content');
+        const modalTitle = document.getElementById('fileViewerModalLabel');
+
+        fileViewerModal.addEventListener('show.bs.modal', function (event) {
+            const button = event.relatedTarget;
+            const arsipId = button.getAttribute('data-arsip-id');
+            const fileFormat = button.getAttribute('data-file-format').toLowerCase();
+            const fileUrl = button.getAttribute('data-file-url');
+            const fileSize = parseInt(button.getAttribute('data-file-size')) || 0; 
+
+            modalTitle.textContent = `Pratinjau Dokumen: ${fileFormat.toUpperCase()}`;
+            
+            loadingSpinner.style.display = 'block';
+            loadingMessage.style.display = 'block';
+            loadingMessage.innerHTML = 'Memuat konten file...';
+            actualPreviewContent.innerHTML = '';
+            actualPreviewContent.style.display = 'none';
+            fileContentArea.style.display = 'flex'; 
+
+            const viewUrl = `/arsip/${arsipId}/view/`;
+            const fileSizeMB = fileSize / (1024 * 1024);
+
+            if (fileFormat === 'pdf') {
+                loadingMessage.innerHTML = 'Memuat PDF... ini mungkin membutuhkan waktu lebih lama untuk file besar.';
+                if (fileSizeMB > 10) {
+                    loadingMessage.innerHTML += `<br>File ini berukuran sekitar ${fileSizeMB.toFixed(2)} MB. Mohon tunggu, atau <a href="${fileUrl}" target="_blank" class="text-primary">klik di sini untuk mengunduh dan melihat langsung di browser Anda</a>.`;
+                }
+
+                const embedHtml = `<iframe src="${fileUrl}" style="width:100%; height:80vh; border:none;" id="pdf-iframe"></iframe>`;
+                actualPreviewContent.innerHTML = embedHtml;
+                
+                const iframe = document.getElementById('pdf-iframe');
+                iframe.onload = function() {
+                    loadingSpinner.style.display = 'none';
+                    loadingMessage.style.display = 'none';
+                    actualPreviewContent.style.display = 'block';
+                };
+                iframe.onerror = function() {
+                    loadingSpinner.style.display = 'none';
+                    loadingMessage.innerHTML = `<p class="text-danger">Gagal memuat PDF. Mungkin ada masalah dengan file atau koneksi Anda. Anda bisa mencoba <a href="${fileUrl}" target="_blank" class="text-primary">mengunduh file ini</a>.</p>`;
+                    actualPreviewContent.style.display = 'block';
+                    console.error('Error loading PDF iframe:', fileUrl);
+                };
+
+            } else if (['jpg', 'jpeg', 'png', 'gif', 'bmp', 'tiff'].includes(fileFormat)) {
+                loadingMessage.innerHTML = 'Memuat gambar...';
+                const embedHtml = `<img src="${fileUrl}" style="max-width:100%; max-height:80vh; display:block; margin:auto;">`;
+                actualPreviewContent.innerHTML = embedHtml;
+                
+                loadingSpinner.style.display = 'none';
+                loadingMessage.style.display = 'none';
+                actualPreviewContent.style.display = 'block';
+            } else {
+                loadingMessage.innerHTML = 'Mengekstrak teks dari dokumen...';
+                fetch(viewUrl)
+                    .then(response => {
+                        const contentType = response.headers.get('content-type');
+                        if (contentType && contentType.includes('application/json')) {
+                            return response.json().then(errorData => {
+                                if (!response.ok) {
+                                    throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+                                }
+                                return errorData; 
+                            });
+                        } else if (contentType && contentType.includes('text/plain')) {
+                            return response.text();
+                        } else {
+                            if (!response.ok) {
+                                return response.text().then(text => {
+                                    throw new Error(`Server response error: ${text.substring(0, 100)}`);
+                                });
+                            }
+                            return response.text();
+                        }
+                    })
+                    .then(data => {
+                        loadingSpinner.style.display = 'none';
+                        loadingMessage.style.display = 'none';
+                        actualPreviewContent.style.display = 'block';
+                        if (typeof data === 'string') {
+                            actualPreviewContent.innerHTML = `<pre style="white-space: pre-wrap; text-align: left;">${data}</pre>`;
+                        } else if (data && data.error) {
+                             actualPreviewContent.innerHTML = `<p class="text-danger">${data.error}</p>`;
+                             if (data.download_url) {
+                                actualPreviewContent.innerHTML += `<p><a href="${data.download_url}" target="_blank" class="btn btn-primary mt-2">Unduh File Asli</a></p>`;
+                             }
+                        } else {
+                            actualPreviewContent.innerHTML = `<p class="text-danger">Gagal menampilkan konten file.</p>`;
+                        }
+                    })
+                    .catch(error => {
+                        loadingSpinner.style.display = 'none';
+                        loadingMessage.style.display = 'none';
+                        actualPreviewContent.style.display = 'block';
+                        actualPreviewContent.innerHTML = `<p class="text-danger">Error saat memuat file: ${error.message}</p>`;
+                        console.error('Error loading file:', error);
+                    });
+            }
+        });
+
+        fileViewerModal.addEventListener('hidden.bs.modal', function () {
+            actualPreviewContent.innerHTML = '';
+            actualPreviewContent.style.display = 'none';
+            loadingSpinner.style.display = 'none';
+            loadingMessage.style.display = 'block';
+            loadingMessage.innerHTML = 'Memuat konten file...';
+            fileContentArea.style.display = 'flex';
+            modalTitle.textContent = 'Lihat Dokumen';
+        });
+    });
+</script>
+{% endblock %}
+{% endblock %}

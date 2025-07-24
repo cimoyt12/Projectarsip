@@ -1,0 +1,21 @@
+{% extends "arsip/base_arsip.html" %}
+{% block title %}Verifikasi Arsip{% endblock %}
+{% block content %}
+<h1 class="mb-4">Daftar Arsip Menunggu Verifikasi</h1>
+{% if arsip_list %}
+  <div class="list-group">
+    {% for arsip in arsip_list %}
+      <a href="{% url 'arsip:verifikasi_detail' arsip.id %}" class="list-group-item list-group-item-action">
+        <div class="d-flex w-100 justify-content-between">
+          <h5 class="mb-1">{{ arsip.judul_arsip }}</h5>
+          <small>{{ arsip.tanggal_diterima|date:"d M Y" }}</small>
+        </div>
+        <p class="mb-1">{{ arsip.deskripsi|truncatechars:100 }}</p>
+        <small>Kategori: {{ arsip.kategori.nama }}</small>
+      </a>
+    {% endfor %}
+  </div>
+{% else %}
+  <div class="alert alert-info">Tidak ada arsip yang menunggu verifikasi.</div>
+{% endif %}
+{% endblock %}

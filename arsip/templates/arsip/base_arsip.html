@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistem Manajemen Arsip Digital - {% block title %}{% endblock %}</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.0/font/bootstrap-icons.css">
+    {% load static %}
+    <link rel="stylesheet" href="{% static 'style.css' %}">
+    {% block extra_css %}{% endblock %}
+</head>
+
+<body>
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container">
+            <a class="navbar-brand" href="{% url 'arsip:beranda' %}">
+                <i class="bi bi-archive"></i> Digital Archive
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'arsip:beranda' %}">Beranda</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'arsip:daftar_arsip' %}">Semua Arsip</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'arsip:kategori_list' %}">Kategori</a>
+                    </li>
+                </ul>
+                <form class="d-flex me-2" action="{% url 'arsip:cari_arsip' %}" method="get">
+                    <input type="text" class="form-control me-2" name="q" value="{{ query }}" placeholder="Cari arsip...">
+                    <button class="btn btn-light me-2" type="submit">Cari</button>
+                </form>
+                {% if user.is_authenticated %}
+                <div class="dropdown">
+                    <button class="btn btn-light dropdown-toggle" type="button" id="dropdownMenuButton"
+                        data-bs-toggle="dropdown">
+                        <i class="bi bi-person-circle"></i> {{ user.username }}
+                    </button>
+                    <ul class="dropdown-menu">
+                        <li><a class="dropdown-item" href="{% url 'arsip:profil' %}"><i class="bi bi-person"></i>
+                                Profil</a></li>
+                        {% if user.profile.role == 'Admin' or user.profile.role == 'Editor' %}
+                        <li><a class="dropdown-item" href="{% url 'arsip:verifikasi_arsip' %}"><i
+                                    class="bi bi-check-circle"></i> Verifikasi Arsip</a></li>
+                        {% endif %}
+                        <li>
+                            <hr class="dropdown-divider">
+                        </li>
+                        <li>
+                        <form method="post" action="{% url 'arsip:logout' %}" class="d-inline">
+                            {% csrf_token %}
+                            <button type="submit" class="dropdown-item">
+                            <i class="bi bi-box-arrow-right"></i> Logout
+                            </button>
+                        </form>
+                        </li>
+                    </ul>
+                </div>
+                {% else %}
+                <a href="{% url 'arsip:login' %}" class="btn btn-light me-2">Login</a>
+                <!-- <a href="{% url 'arsip:register' %}" class="btn btn-light me-2">Register</a> -->
+                {% endif %}
+            </div>
+        </div>
+    </nav>
+
+    <!-- Konten Utama -->
+    <main class="container my-5">
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="row">
+                <div class="col-md-4 mb-4">
+                    <h5>Sistem Manajemen Arsip Digital</h5>
+                    <p class="text-muted">Solusi terbaik untuk pengelolaan dokumen digital Anda.</p>
+                </div>
+                <div class="col-md-4 mb-4">
+                    <h5>Kontak</h5>
+                    <ul class="list-unstyled">
+                        <li><i class="bi bi-envelope"></i> arsip@perusahaan.com</li>
+                        <li><i class="bi bi-telephone"></i> (021) 1234-5678</li>
+                    </ul>
+                </div>
+                <div class="col-md-4 mb-4">
+                    <h5>Statistik</h5>
+                    <ul class="list-unstyled">
+                        <li><i class="bi bi-file-earmark"></i> Total Arsip: {{ total_arsip|default:'0' }}</li>
+                        <li><i class="bi bi-folder"></i> Kategori: {{ total_kategori|default:'0' }}</li>
+                    </ul>
+                </div>
+            </div>
+            <hr>
+            <div class="text-center text-muted">
+                &copy; {% now "Y" %} Sistem Manajemen Arsip Digital. All rights reserved.
+            </div>
+        </div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    {% block extra_js %}{% endblock %}
+</body>
+
+</html>

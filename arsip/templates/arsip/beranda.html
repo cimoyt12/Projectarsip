@@ -1,0 +1,97 @@
+{% extends "arsip/base_arsip.html" %}
+{% load static %}
+
+{% block title %}Beranda - Sistem Arsip Digital{% endblock %}
+
+{% block content %}
+<!-- Hero Section -->
+<div class="p-5 mb-4 bg-light rounded-3">
+    <div class="container-fluid py-5 text-center">
+        <h1 class="display-5 fw-bold">Kelola Arsip Digital dengan Mudah</h1>
+        <p class="fs-4">Solusi terintegrasi untuk manajemen dokumen digital perusahaan Anda</p>
+        <a class="btn btn-primary btn-lg" href="{% url 'arsip:daftar_arsip' %}">Jelajahi Arsip</a>
+    </div>
+</div>
+
+<!-- Fitur Unggulan -->
+<div class="row mb-5">
+    <div class="col-md-4 mb-4">
+        <div class="card h-100 text-center p-4">
+            <i class="bi bi-search text-primary file-icon mb-3"></i>
+            <h3>Cari Cepat</h3>
+            <p>Temukan dokumen yang Anda butuhkan dalam hitungan detik dengan sistem pencarian canggih</p>
+        </div>
+    </div>
+    <div class="col-md-4 mb-4">
+        <div class="card h-100 text-center p-4">
+            <i class="bi bi-shield-lock text-primary file-icon mb-3"></i>
+            <h3>Keamanan Terjamin</h3>
+            <p>Dokumen Anda terlindungi dengan sistem keamanan berlapis dan kontrol akses</p>
+        </div>
+    </div>
+    <div class="col-md-4 mb-4">
+        <div class="card h-100 text-center p-4">
+            <i class="bi bi-folder text-primary file-icon mb-3"></i>
+            <h3>Kategori Terorganisir</h3>
+            <p>Kelompokkan dokumen dalam kategori yang mudah dikelola</p>
+        </div>
+    </div>
+</div>
+
+<!-- Arsip Terbaru -->
+<h2 class="border-bottom pb-2 mb-4">Arsip Terbaru</h2>
+
+{% if arsip_terbaru %}
+<div class="row row-cols-1 row-cols-md-3 g-4">
+    <!-- arsip/templates/arsip/beranda.html -->
+    {% for arsip in arsip_terbaru %}
+    <div class="col-md-4 mb-4">
+        <div class="card h-100">
+            <div class="card-body">
+                <h5 class="card-title">{{ arsip.judul_arsip }}</h5>
+                <p class="card-text">{{ arsip.deskripsi|truncatechars:100 }}</p>
+            </div>
+            <div class="card-footer">
+                <small class="text-muted">
+                    {{ arsip.tanggal_diterima|date:"d M Y" }}
+                </small>
+                <a href="{% url 'arsip:detail_arsip' arsip.id %}" class="btn btn-outline-primary btn-sm float-end small">Lihat Detail</a>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+<div class="text-center mt-4">
+    <a href="{% url 'arsip:daftar_arsip' %}" class="btn btn-primary">
+        Lihat Semua Arsip <i class="bi bi-arrow-right"></i>
+    </a>
+</div>
+{% else %}
+<div class="alert alert-info">
+    Belum ada arsip yang tersedia.
+</div>
+{% endif %}
+
+<!-- Kategori Populer -->
+<h2 class="border-bottom pb-2 mb-4 mt-5">Kategori Populer</h2>
+<div class="row row-cols-1 row-cols-md-4 g-4">
+    {% for kategori in kategori_populer %}
+    <div class="col mb-4 d-flex align-items-stretch">
+        <div class="card text-center h-100 w-100">
+            <div class="card-body d-flex flex-column">
+                <i class="bi bi-folder text-primary fs-1 mb-3"></i>
+                <h5 class="card-title">{{ kategori.nama }}</h5>
+                <p class="card-text text-muted">{{ kategori.deskripsi }}</p>
+                <p class="text-muted">{{ kategori.jumlah_arsip }} dokumen</p>
+            </div>
+            <div class="card-footer bg-white mt-auto">
+                <a href="{% url 'arsip:arsip_per_kategori' kategori.id %}" class="btn btn-outline-primary w-100">
+                    Lihat Arsip <i class="bi bi-arrow-right"></i>
+                </a>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}

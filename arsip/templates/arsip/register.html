@@ -1,0 +1,43 @@
+{% extends "arsip/base_arsip.html" %}
+{% block title %}Register{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-md-6 col-lg-4">
+    <div class="card shadow-sm">
+      <div class="card-body register-form">
+        <h2 class="mb-4 text-center">Register</h2>
+        <form method="post">
+          {% csrf_token %}
+          
+          {% if form.non_field_errors %}
+          <div class="alert alert-danger mb-3">
+            {{ form.non_field_errors }}
+          </div>
+          {% endif %}
+          
+          {% for field in form %}
+          <div class="form-group">
+            <label for="{{ field.id_for_label }}" class="form-label">
+              {{ field.label }}
+              {% if field.field.required %}<span class="text-danger">*</span>{% endif %}
+            </label>
+            {{ field }}
+            {% if field.help_text %}
+              <small class="form-text">{{ field.help_text }}</small>
+            {% endif %}
+            {% if field.errors %}
+              <div class="errorlist">{{ field.errors }}</div>
+            {% endif %}
+          </div>
+          {% endfor %}
+          
+          <button type="submit" class="btn btn-primary w-100 mt-3">Register</button>
+        </form>
+        <div class="mt-3 text-center">
+          Sudah punya akun? <a href="{% url 'arsip:login' %}">Login disini</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

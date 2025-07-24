@@ -1,0 +1,20 @@
+{% extends "arsip/base_arsip.html" %}
+{% load static %}
+
+{% block title %}Profil Pengguna - Sistem Arsip Digital{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <h1 class="mb-4">Profil Pengguna</h1>
+    <div class="card mb-4">
+        <div class="card-body">
+            <h5 class="card-title">{{ user.get_full_name|default:user.username }}</h5>
+            <p class="mb-2"><strong>Username:</strong> {{ user.username }}</p>
+            <p class="mb-2"><strong>Email:</strong> {{ user.email }}</p>
+            <p class="mb-2"><strong>Role:</strong> {{ profile.role|title }}</p>
+            <p class="mb-2"><strong>Email Terverifikasi:</strong> {{ profile.email_verified|yesno:"Ya,Tidak" }}</p>
+        </div>
+    </div>
+    <a href="/" class="btn btn-secondary"><i class="bi bi-arrow-left"></i> Kembali ke Beranda</a>
+</div>
+{% endblock %}

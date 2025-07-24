@@ -1,0 +1,26 @@
+{% extends "arsip/base_arsip.html" %}
+{% load static %}
+
+{% block title %}Hasil Pencarian Arsip{% endblock %}
+
+{% block content %}
+<h1 class="mb-4">Hasil Pencarian Arsip</h1>
+
+{% if results %}
+<div class="list-group mb-4">
+    {% for arsip in results %}
+    <a href="{% url 'arsip:detail_arsip' arsip.id %}" class="list-group-item list-group-item-action">
+        <div class="d-flex w-100 justify-content-between">
+            <h5 class="mb-1">{{ arsip.judul_arsip }}</h5>
+            <small>{{ arsip.tanggal_diterima|date:"d F Y" }}</small>
+        </div>
+        <p class="mb-1">{{ arsip.deskripsi|truncatechars:100 }}</p>
+        <small>Kategori: {{ arsip.kategori.nama }}</small>
+    </a>
+    {% endfor %}
+</div>
+{% else %}
+<div class="alert alert-info">Tidak ada arsip yang ditemukan untuk kata kunci <strong>{{ query }}</strong>.</div>
+{% endif %}
+<a href="/" class="btn btn-secondary"><i class="bi bi-arrow-left"></i> Kembali ke Beranda</a>
+{% endblock %}
