@@ -4,25 +4,102 @@
 {% block title %}Kategori Arsip - Sistem Arsip Digital{% endblock %}
 
 {% block content %}
-<h1 class="mb-4">Kategori Arsip</h1>
+{% if user.is_authenticated %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1 class="mb-4">Kategori Arsip</h1>
+    {% if user.profile.role == 'Admin' %}
+    <a href="{% url 'arsip:tambah_kategori' %}" class="btn btn-success">       
+        <i class="bi bi-plus-circle"></i> Tambah Kategori Baru
+    </a>
+    {% endif %}
+</div>
+{% endif %}
 
 <div class="row">
     {% for kategori in kategori_list %}
-  <div class="col-md-3 mb-4">
-    <div class="card text-center h-100">
-      <div class="card-body">
-        <i class="bi bi-folder text-primary fs-1 mb-3"></i>
-        <h5 class="card-title">{{ kategori.nama }}</h5>
-        <p class="card-text text-muted">{{ kategori.deskripsi }}</p>
-        <p class="text-muted">{{ kategori.jumlah_arsip }} dokumen</p>
-      </div>
-      <div class="card-footer bg-white">
-        <a href="{% url 'arsip:arsip_per_kategori' kategori.id %}" class="btn btn-outline-primary w-100">
-          Lihat Arsip <i class="bi bi-arrow-right"></i>
-        </a>
-      </div>
+    <div class="col-md-3 mb-4">
+        <div class="card text-center h-100">
+            <div class="card-body d-flex flex-column justify-content-between">
+                <div> {# Wrapper untuk konten atas #}
+                    <i class="bi bi-folder text-primary fs-1 mb-3"></i>
+                    <h5 class="card-title">{{ kategori.nama }}</h5>
+                    <p class="card-text text-muted">{{ kategori.deskripsi }}</p>
+                    <p class="text-muted">{{ kategori.jumlah_arsip }} dokumen</p>
+                </div>
+                
+                {# Tombol "Lihat Arsip" di bagian tengah #}
+                <div class="mt-3"> 
+                    <a href="{% url 'arsip:arsip_per_kategori' kategori.id %}" class="btn btn-outline-primary w-100">
+                        Lihat Arsip <i class="bi bi-arrow-right"></i>
+                    </a>
+                </div>
+            </div>
+            
+            {# Tombol Edit dan Hapus di bagian paling bawah, berdampingan #}
+            {% if user.is_authenticated %}
+            <div class="card-footer bg-white d-flex justify-content-center gap-2 pt-3"> {# Added pt-3 for padding-top #}
+              {% if user.profile.role == 'Admin' or user.profile.role == 'Editor' %}
+                <a href="{% url 'arsip:edit_kategori' kategori.id %}" class="btn btn-warning btn-sm flex-grow-1">
+                    <i class="bi bi-pencil"></i> Edit
+                </a>
+              {% endif %}
+              {% if user.profile.role == 'Admin' %}
+                <button type="button" class="btn btn-danger btn-sm flex-grow-1" data-bs-toggle="modal" data-bs-target="#confirmDeleteKategoriModal" 
+                        data-kategori-id="{{ kategori.id }}" 
+                        data-kategori-nama="{{ kategori.nama }}"
+                        data-delete-url="{% url 'arsip:hapus_kategori' kategori.id %}"> {# PERBAIKAN UTAMA DI SINI #}
+                    <i class="bi bi-trash"></i> Hapus
+                </button>
+              {% endif %}
+            </div>
+            {% endif %}
+        </div>
     </div>
-  </div>
-{% endfor %}
+    {% endfor %}
 </div>
+
+{# Modal Konfirmasi Hapus Kategori - Tetap di sini #}
+<div class="modal fade" id="confirmDeleteKategoriModal" tabindex="-1" aria-labelledby="confirmDeleteKategoriModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title" id="confirmDeleteKategoriModalLabel">Konfirmasi Penghapusan</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>Anda yakin ingin menghapus kategori "<strong id="kategoriNamaModal"></strong>"?</p>
+                <p class="text-danger small">
+                    **Penting:** Arsip digital yang terkait dengan kategori ini tidak akan terhapus, namun akan kehilangan kategorinya di database (field kategori akan menjadi kosong).
+                </p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                <form id="deleteKategoriForm" method="post" action="">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-danger">Hapus</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        var confirmDeleteKategoriModal = document.getElementById('confirmDeleteKategoriModal');
+        confirmDeleteKategoriModal.addEventListener('show.bs.modal', function (event) {
+            var button = event.relatedTarget; // The button that triggered the modal
+            var kategoriId = button.getAttribute('data-kategori-id');
+            var kategoriNama = button.getAttribute('data-kategori-nama');
+            var deleteUrl = button.getAttribute('data-delete-url'); // Ambil URL dari data-attribute
+
+            var modalTitle = confirmDeleteKategoriModal.querySelector('#kategoriNamaModal');
+            var deleteForm = confirmDeleteKategoriModal.querySelector('#deleteKategoriForm');
+            
+            modalTitle.textContent = kategoriNama;
+            deleteForm.action = deleteUrl; // Set action form dengan URL yang sudah benar
+        });
+    });
+</script>
+{% endblock %}
 {% endblock %}

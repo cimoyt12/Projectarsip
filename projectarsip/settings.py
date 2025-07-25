@@ -32,6 +32,7 @@ ALLOWED_HOSTS = []
 # Application definition
 
 INSTALLED_APPS = [
+    'jazzmin',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -159,3 +160,86 @@ EMAIL_USE_SSL = False  # Jangan gunakan SSL (gunakan hanya jika port 465)
 EMAIL_HOST_USER = '2359201102@umko.ac.id'  # Email pengirim (misal: noreply@arsipdigital.com)
 EMAIL_HOST_PASSWORD = 'ofeo lsmw xpjn gsvk '  # Password email atau App Password (untuk Gmail)
 DEFAULT_FROM_EMAIL = 'noreply@arsipdigital.com'  # Email default pengirim
+
+# Jazzmin Settings - Konfigurasi Utama
+JAZZMIN_SETTINGS = {
+    # Tampilan Admin
+    "site_title": "Sistem Arsip Digital",
+    "site_header": "Arsip Digital",
+    "site_brand": "Arsip Digital",
+    "site_icon": "fas fa-archive",
+    "welcome_sign": "Selamat Datang di Sistem Administrasi Arsip Digital!",
+
+    # URL untuk logo di sidebar (opsional, bisa diganti dengan path gambar Anda)
+    "login_logo": None,
+    "login_logo_dark": None,
+    "site_logo": None,
+
+    # Sidebar
+    "show_sidebar": True,
+    "navigation_expanded": True,
+    "hide_apps": [], # Contoh: ['auth'] untuk menyembunyikan aplikasi Auth & Group
+    "hide_models": [],
+
+    # PENTING: Komentari atau Hapus baris "theme" di JAZZMIN_SETTINGS ini
+    # agar tema bisa diatur via JAZZMIN_UI_TWEAKS dan live selector.
+    # "theme": "darkly", # Ini sekarang diatur di JAZZMIN_UI_TWEAKS
+
+    # Warna Topbar dan Sidebar:
+    # Kita buat mereka sangat gelap/hitam agar match dengan tema 'darkly'.
+    "topbar_colors": ["navbar-dark", "bg-dark"],
+    "sidebar_colors": ["sidebar-dark-primary", "bg-dark"], # sidebar-dark-primary memberikan aksen biru pada item aktif
+
+    "navbar_fixed": True,
+    "sidebar_fixed": True,
+    "sidebar_nav_child_indent": True,
+    "sidebar_nav_compact_style": False,
+    "sidebar_nav_small_text": False,
+    "sidebar_nav_flat_style": False,
+
+    # Fitur UI
+    "search_model": ["arsip.Arsip", "auth.User"],
+}
+
+# Jazzmin UI Tweaks - Penyesuaian Detail UI
+# Pengaturan 'theme' dan 'dark_mode_theme' di sini akan mengaktifkan live theme selector.
+JAZZMIN_UI_TWEAKS = {
+    "navbar_small_text": False,
+    "footer_small_text": False,
+    "body_small_text": False,
+    "brand_small_text": False,
+    "brand_colour": False,
+    "accent": "accent-primary", # Warna aksen (misalnya link, ikon aktif) akan tetap biru ini
+
+    # Navbar: Kita gunakan setting dari topbar_colors di JAZZMIN_SETTINGS
+    "navbar": "navbar-dark bg-dark",
+
+    "no_navbar_border": False,
+    "navbar_fixed": True,
+    "layout_fixed": True,
+
+    # Sidebar: Kita gunakan setting dari sidebar_colors di JAZZMIN_SETTINGS
+    "sidebar_chg_h": "accent-primary", # Warna hover di sidebar akan mengikuti aksen
+    "sidebar_brand_look": "bg-dark", # Background untuk logo/nama brand di sidebar
+    "sidebar_nav_small_text": False,
+    "sidebar_disable_expand": False,
+    "sidebar_nav_child_indent": True,
+    "sidebar_nav_compact_style": False,
+    "sidebar_nav_legacy_style": False,
+    "sidebar_nav_flat_style": False,
+
+    # Tema default untuk Live Theme Selector:
+    # Kita set ke 'darkly' untuk tema utama yang konsisten.
+    "theme": "darkly",
+    "dark_mode_theme": "darkly", # Tema untuk Dark Mode (pastikan sama dengan 'theme' jika ingin konsisten)
+
+    # Kelas CSS untuk tombol (Kita ubah ke yang solid agar lebih menonjol dan sinkron)
+    "button_classes": {
+        "primary": "btn-primary", # Contoh: Tombol Save akan berwarna solid biru
+        "secondary": "btn-secondary",
+        "info": "btn-info",
+        "warning": "btn-warning",
+        "danger": "btn-danger",
+        "success": "btn-success"
+    }
+}

@@ -5,7 +5,8 @@ from .views import ArsipViewSet
 from . import views
 from .views import (
     VerifikasiArsipView, VerifikasiDetailView,
-    dashboard, dashboard_pembuat, dashboard_editor
+    dashboard, dashboard_pembuat, dashboard_editor,
+    tambah_kategori, edit_kategori, hapus_kategori # Pastikan edit_kategori dan hapus_kategori diimpor
 )
 
 app_name = 'arsip'
@@ -16,9 +17,12 @@ urlpatterns = [
     path('api/arsip/<int:pk>/', ArsipViewSet.as_view({'get': 'retrieve', 'put': 'update', 'delete': 'destroy'}), name='arsip-detail'),
     path('arsip/', views.daftar_arsip, name='daftar_arsip'),
     path('arsip/<int:arsip_id>/', views.detail_arsip, name='detail_arsip'),
-    path('arsip/<int:arsip_id>/edit/', views.edit_arsip, name='edit_arsip'), # URL untuk edit
-    path('arsip/<int:arsip_id>/hapus/', views.hapus_arsip, name='hapus_arsip'), # URL untuk hapus
+    path('arsip/<int:arsip_id>/edit/', views.edit_arsip, name='edit_arsip'),
+    path('arsip/<int:arsip_id>/hapus/', views.hapus_arsip, name='hapus_arsip'),
     path('kategori/', views.kategori_list, name='kategori_list'),
+    path('kategori/tambah/', views.tambah_kategori, name='tambah_kategori'),
+    path('kategori/<int:kategori_id>/edit/', views.edit_kategori, name='edit_kategori'), # URL baru untuk edit kategori
+    path('kategori/<int:kategori_id>/hapus/', views.hapus_kategori, name='hapus_kategori'),
     path('kategori/<int:kategori_id>/', views.arsip_per_kategori, name='arsip_per_kategori'),
     path('cari/', views.cari_arsip, name='cari_arsip'),
     path('upload/', views.upload_arsip, name='upload'),

@@ -3,7 +3,7 @@ from django.urls import reverse_lazy
 from django.views.generic import CreateView, ListView, UpdateView
 from django.utils import timezone
 from .models import Arsip, Kategori, Profile
-from .forms import ArsipForm, VerifikasiForm
+from .forms import ArsipForm, VerifikasiForm, KategoriForm, RegisterForm, PasswordChangeForm
 from django.core.paginator import Paginator
 from django.db.models import Count, Q
 from rest_framework import viewsets
@@ -12,7 +12,6 @@ from .serializers import ArsipSerializer
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib.auth.mixins import LoginRequiredMixin
 from .permissions import PembuatRequiredMixin, VerifikasiRequiredMixin
-from .forms import RegisterForm, PasswordChangeForm
 from django.contrib.auth import login
 from django.contrib.auth.models import User
 from django.contrib import messages
@@ -26,19 +25,19 @@ from PIL import Image
 import io
 import os
 
-# Fungsi pembantu untuk memeriksa apakah pengguna adalah Admin atau Editor
+# Helper function to check if a user is Admin or Editor
 def is_admin_or_editor(user):
     return user.is_authenticated and hasattr(user, 'profile') and user.profile.role in ['Admin', 'Editor']
 
-# Fungsi pembantu untuk memeriksa apakah pengguna adalah Admin atau Pembuat arsip itu sendiri
+# Helper function to check if a user is Admin or the owner of the archive
 def is_admin_or_arsip_owner(user, arsip):
     return user.is_authenticated and hasattr(user, 'profile') and (user.profile.role == 'Admin' or user == arsip.dibuat_oleh)
 
-# Fungsi Pembantu untuk Menambah Akses
+# Helper function to increment archive access
 def increment_arsip_access(request, arsip_id):
     """
-    Menambah kolom 'diakses' pada Arsip dan melacak sesi pengguna
-    agar tidak double hitung dalam satu sesi.
+    Increments the 'diakses' column in Arsip and tracks user session
+    to prevent double counting within one session.
     """
     if 'accessed_archives' not in request.session:
         request.session['accessed_archives'] = []
@@ -51,16 +50,16 @@ def increment_arsip_access(request, arsip_id):
 
             request.session['accessed_archives'].append(arsip_id)
             request.session.modified = True
-            print(f"Akses untuk Arsip ID {arsip_id} bertambah. Jumlah akses saat ini: {arsip.diakses}")
+            print(f"Access for Archive ID {arsip_id} incremented. Current access count: {arsip.diakses}")
         except Arsip.DoesNotExist:
-            print(f"Arsip ID {arsip_id} tidak ditemukan.")
+            print(f"Archive ID {arsip_id} not found.")
         except Exception as e:
-            print(f"Gagal menambah akses untuk Arsip ID {arsip_id}: {e}")
+            print(f"Failed to increment access for Archive ID {arsip_id}: {e}")
     else:
-        print(f"Arsip ID {arsip_id} sudah diakses dalam sesi ini. Tidak menambah akses.")
+        print(f"Archive ID {arsip_id} already accessed in this session. Not incrementing access.")
 
 
-# Fungsi View untuk Preview Dokumen
+# View function for document preview
 @xframe_options_exempt
 def view_digital_document(request, arsip_id):
     increment_arsip_access(request, arsip_id)
@@ -120,7 +119,7 @@ def view_digital_document(request, arsip_id):
         return JsonResponse({'error': f'Terjadi kesalahan saat memproses file: {str(e)}'}, status=500)
 
 
-# Fungsi View untuk Download Dokumen
+# View function for document download
 @login_required
 def download_digital_document(request, arsip_id):
     increment_arsip_access(request, arsip_id)
@@ -288,16 +287,40 @@ def edit_arsip(request, arsip_id):
     if request.method == 'POST':
         form = ArsipForm(request.POST, request.FILES, instance=arsip)
         if form.is_valid():
+            # Logika baru untuk penanganan file:
+            # 1. Cek apakah ada file baru diupload
             if 'lokasi_digital' in request.FILES:
-                if arsip.lokasi_digital and arsip.lokasi_digital.path != form.cleaned_data['lokasi_digital'].path:
-                    old_path = arsip.lokasi_digital.path
-                    if os.path.exists(old_path):
-                        os.remove(old_path)
+                # Jika ada file lama, hapus file lama secara fisik
+                if arsip.lokasi_digital:
+                    old_file_path = arsip.lokasi_digital.path
+                    if os.path.exists(old_file_path):
+                        os.remove(old_file_path)
+                        print(f"File lama {old_file_path} berhasil dihapus.")
+                # Atur file baru dari form
                 arsip.lokasi_digital = form.cleaned_data['lokasi_digital']
+            # 2. Cek apakah kotak "Clear" dicentang
+            elif f'lokasi_digital-clear' in request.POST and form.cleaned_data.get('lokasi_digital') is False:
+                if arsip.lokasi_digital:
+                    old_file_path = arsip.lokasi_digital.path
+                    if os.path.exists(old_file_path):
+                        os.remove(old_file_path)
+                        print(f"File {old_file_path} berhasil dihapus karena opsi 'clear'.")
+                arsip.lokasi_digital = None # Set field file menjadi None (kosong)
+            # 3. Jika tidak ada file baru diupload DAN tidak ada clear, biarkan file lama
+            # (form.cleaned_data['lokasi_digital'] akan tetap berisi instance file lama dari `instance=arsip`)
             
-            arsip = form.save(commit=False)
-            arsip.save()
-            form.save_m2m()
+            arsip = form.save(commit=False) # Simpan data form ke instance Arsip, tapi belum ke DB
+            
+            # Perbarui format_file dan ukuran_file jika lokasi_digital diubah atau dikosongkan
+            if arsip.lokasi_digital:
+                arsip.format_file = os.path.splitext(arsip.lokasi_digital.name)[1][1:].upper()
+                arsip.ukuran_file = arsip.lokasi_digital.size
+            else:
+                arsip.format_file = ''
+                arsip.ukuran_file = 0
+
+            arsip.save() # Simpan instance Arsip ke DB
+            form.save_m2m() # Simpan many-to-many data (misal tags)
             messages.success(request, 'Arsip berhasil diperbarui!')
             return redirect('arsip:detail_arsip', arsip_id=arsip.id)
         else:
@@ -327,13 +350,65 @@ def hapus_arsip(request, arsip_id):
                 except Exception as e:
                     print(f"Gagal menghapus file {file_path}: {e}")
                     messages.error(request, f"Gagal menghapus file fisik: {e}")
-                    return redirect('arsip:detail_arsip', arsip_id=arsip.id)
+                    return redirect('arsip:detail_arsip', arsip_id=arsip_id)
         
         arsip.delete()
         messages.success(request, "Arsip berhasil dihapus!")
         return redirect('arsip:daftar_arsip')
     
     return render(request, 'arsip/konfirmasi_hapus.html', {'arsip': arsip})
+
+# Fungsi baru untuk menambah kategori
+@login_required
+@user_passes_test(lambda user: hasattr(user, 'profile') and user.profile.role == 'Admin', login_url=reverse_lazy('arsip:beranda'))
+def tambah_kategori(request):
+    if request.method == 'POST':
+        form = KategoriForm(request.POST)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Kategori baru berhasil ditambahkan!')
+            return redirect('arsip:kategori_list') # Redirect ke daftar kategori setelah sukses
+        else:
+            messages.error(request, 'Terjadi kesalahan saat menambahkan kategori. Mohon periksa isian form.')
+    else:
+        form = KategoriForm()
+    
+    return render(request, 'arsip/tambah_kategori.html', {'form': form})
+
+# New function to edit category
+@login_required
+# PERBAIKAN: Izinkan Admin ATAU Editor untuk mengedit kategori
+@user_passes_test(lambda user: hasattr(user, 'profile') and user.profile.role in ['Admin', 'Editor'], login_url=reverse_lazy('arsip:beranda'))
+def edit_kategori(request, kategori_id):
+    kategori = get_object_or_404(Kategori, id=kategori_id)
+    if request.method == 'POST':
+        form = KategoriForm(request.POST, instance=kategori)
+        if form.is_valid():
+            form.save()
+            messages.success(request, f'Kategori "{kategori.nama}" berhasil diperbarui.')
+            return redirect('arsip:kategori_list')
+        else:
+            messages.error(request, 'Terjadi kesalahan saat memperbarui kategori. Mohon periksa isian form.')
+    else:
+        form = KategoriForm(instance=kategori)
+    return render(request, 'arsip/edit_kategori.html', {'form': form, 'kategori': kategori})
+
+# New function to delete category
+@login_required
+@user_passes_test(lambda user: hasattr(user, 'profile') and user.profile.role == 'Admin', login_url=reverse_lazy('arsip:beranda'))
+def hapus_kategori(request, kategori_id):
+    kategori = get_object_or_404(Kategori, id=kategori_id)
+
+    if request.method == 'POST':
+        # When a category is deleted, the 'kategori' field in related Archives will automatically become NULL
+        # due to models.ForeignKey(Kategori, on_delete=models.SET_NULL)
+        kategori.delete()
+        messages.success(request, f'Kategori "{kategori.nama}" berhasil dihapus.')
+        return redirect('arsip:kategori_list')
+    
+    # If method GET, show confirmation page (optional, could redirect directly if no confirmation is needed)
+    # For security, a confirmation page or modal is better.
+    return render(request, 'arsip/konfirmasi_hapus_kategori.html', {'kategori': kategori})
 
 def kategori_populer(request):
     kategori_populer = Kategori.objects.annotate(
@@ -355,29 +430,28 @@ def kategori_list(request):
 def arsip_per_kategori(request, kategori_id):
     kategori = get_object_or_404(Kategori, id=kategori_id)
     
-    # Filter awal: Hanya arsip yang sudah diterima (diterima)
+    # Initial filter: Only verified archives
     arsip_list = Arsip.objects.filter(kategori=kategori, status_verifikasi='diterima')
     
-    # Ambil status akses filter dari URL (misalnya ?status_akses=internal)
+    # Get access status filter from URL (e.g., ?status_akses=internal)
     status_akses_filter = request.GET.get('status_akses') 
 
     if status_akses_filter:
         if status_akses_filter == 'publik':
             arsip_list = arsip_list.filter(status_akses='publik')
         elif status_akses_filter == 'internal':
-            # Hanya tampilkan internal jika user terautentikasi dan memiliki profil
+            # Only show internal if user is authenticated and has a profile
             if request.user.is_authenticated and hasattr(request.user, 'profile'):
                 arsip_list = arsip_list.filter(status_akses='internal')
             else:
                 messages.warning(request, "Anda harus login untuk melihat arsip internal di kategori ini.")
-                arsip_list = arsip_list.none() # Kosongkan queryset jika tidak ada akses
+                arsip_list = arsip_list.none() # Empty queryset if no access
     else:
-        # Perubahan di sini: Jika tidak ada filter status_akses di URL
+        # Changes here: If no status_akses filter in URL
         if not request.user.is_authenticated:
-            # Jika tidak login, default ke hanya publik
+            # If not logged in, default to only public
             arsip_list = arsip_list.filter(status_akses='publik')
-        # Jika login, dan tidak ada filter status_akses, biarkan arsip_list apa adanya (publik dan internal)
-        # Artinya, user yang login bisa melihat arsip publik dan internal secara bersamaan di daftar kategori.
+        # If logged in, and no status_akses filter, leave arsip_list as is (public and internal)
 
     arsip_list = arsip_list.order_by('-tanggal_diterima')
 
@@ -388,13 +462,13 @@ def arsip_per_kategori(request, kategori_id):
 
 def cari_arsip(request):
     query = request.GET.get('q', '')
-    status_filter = request.GET.get('status_akses', 'publik') # Ubah dari 'status' ke 'status_akses'
+    status_filter = request.GET.get('status_akses', 'publik') # Change from 'status' to 'status_akses'
     
     results = Arsip.objects.filter(
         Q(judul_arsip__icontains=query) |
         Q(deskripsi__icontains=query) |
         Q(kategori__nama__icontains=query)
-    ).filter(status_verifikasi='diterima') # Pastikan hanya yang sudah diverifikasi
+    ).filter(status_verifikasi='diterima') # Ensure only verified
 
     if not request.user.is_authenticated:
         results = results.filter(status_akses='publik')
@@ -403,8 +477,7 @@ def cari_arsip(request):
             results = results.filter(status_akses='internal')
         elif status_filter == 'publik':
             results = results.filter(status_akses='publik')
-        # Jika user login dan status_filter kosong (default), biarkan semua (publik dan internal)
-
+        # If user is logged in and status_filter is empty (default), show all (public and internal)
             
     results = results.order_by('-tanggal_diterima')
 

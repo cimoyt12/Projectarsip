@@ -3,11 +3,10 @@ from .models import Arsip, Kategori, Tag, Profile
 
 
 class ArsipAdmin(admin.ModelAdmin):
-    list_display = ('judul_arsip', 'kategori', 'status_akses', 'tanggal_diterima', 'dibuat_oleh')
+    list_display = ('judul_arsip', 'kategori', 'status_akses', 'dibuat_oleh')
     list_filter = ('status_akses', 'kategori', 'tags')
     search_fields = ('judul_arsip', 'deskripsi', 'kode_arsip')
     readonly_fields = ('format_file', 'ukuran_file', 'timestamp_input', 'last_updated')
-    date_hierarchy = 'tanggal_diterima'
     fieldsets = (
         ('Metadata Utama', {
             'fields': ('judul_arsip', 'kode_arsip', 'deskripsi')
@@ -16,7 +15,7 @@ class ArsipAdmin(admin.ModelAdmin):
             'fields': ('kategori', 'tags')
         }),
         ('Informasi Tanggal', {
-            'fields': ('tanggal_dibuat', 'tanggal_diterima')
+            'fields': ('tanggal_dibuat',)
         }),
         ('Informasi File', {
             'fields': ('lokasi_digital', 'format_file', 'ukuran_file')

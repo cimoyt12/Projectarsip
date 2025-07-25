@@ -3,7 +3,7 @@ from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
 from django.contrib.auth.forms import SetPasswordForm
-from .models import Arsip
+from .models import Arsip, Kategori # Import Kategori
 
 class RegisterForm(UserCreationForm):
     email = forms.EmailField(required=True)
@@ -25,9 +25,9 @@ class PasswordChangeForm(SetPasswordForm):
         self.fields['new_password2'].help_text = "Confirm the new password."
 
 class ArsipForm(forms.ModelForm):
-    # Buat lokasi_digital menjadi opsional saat tidak ada instance (misal, saat upload baru)
-    # dan juga saat ada instance (misal, saat edit)
-    lokasi_digital = forms.FileField(label='Pilih File Arsip (Biarkan kosong jika tidak ingin mengubah file)', required=False)
+    # Buat lokasi_digital menjadi opsional secara default agar bisa ditangani di __init__
+    # Django secara otomatis akan menambahkan 'Clear checkbox' jika initial data ada file.
+    lokasi_digital = forms.FileField(label='Pilih File Arsip', required=False)
 
     class Meta:
         model = Arsip
@@ -65,4 +65,14 @@ class VerifikasiForm(forms.ModelForm):
         widgets = {
             'status_verifikasi': forms.RadioSelect,
             'catatan_verifikasi': forms.Textarea(attrs={'rows': 4}),
+        }
+
+# Form baru untuk Kategori
+class KategoriForm(forms.ModelForm):
+    class Meta:
+        model = Kategori
+        fields = ['nama', 'deskripsi']
+        widgets = {
+            'nama': forms.TextInput(attrs={'placeholder': 'Nama Kategori'}),
+            'deskripsi': forms.Textarea(attrs={'rows': 3, 'placeholder': 'Deskripsi Singkat Kategori'}),
         }
