@@ -28,13 +28,13 @@ import os
 
 # Fungsi pembantu untuk memeriksa apakah pengguna adalah Admin atau Editor
 def is_admin_or_editor(user):
-    return user.is_authenticated and user.profile.role in ['Admin', 'Editor']
+    return user.is_authenticated and hasattr(user, 'profile') and user.profile.role in ['Admin', 'Editor']
 
 # Fungsi pembantu untuk memeriksa apakah pengguna adalah Admin atau Pembuat arsip itu sendiri
 def is_admin_or_arsip_owner(user, arsip):
-    return user.is_authenticated and (user.profile.role == 'Admin' or user == arsip.dibuat_oleh)
+    return user.is_authenticated and hasattr(user, 'profile') and (user.profile.role == 'Admin' or user == arsip.dibuat_oleh)
 
-# --- Fungsi Pembantu untuk Menambah Akses ---
+# Fungsi Pembantu untuk Menambah Akses
 def increment_arsip_access(request, arsip_id):
     """
     Menambah kolom 'diakses' pada Arsip dan melacak sesi pengguna
@@ -60,7 +60,7 @@ def increment_arsip_access(request, arsip_id):
         print(f"Arsip ID {arsip_id} sudah diakses dalam sesi ini. Tidak menambah akses.")
 
 
-# --- Fungsi View untuk Preview Dokumen ---
+# Fungsi View untuk Preview Dokumen
 @xframe_options_exempt
 def view_digital_document(request, arsip_id):
     increment_arsip_access(request, arsip_id)
@@ -120,7 +120,7 @@ def view_digital_document(request, arsip_id):
         return JsonResponse({'error': f'Terjadi kesalahan saat memproses file: {str(e)}'}, status=500)
 
 
-# --- Fungsi View untuk Download Dokumen ---
+# Fungsi View untuk Download Dokumen
 @login_required
 def download_digital_document(request, arsip_id):
     increment_arsip_access(request, arsip_id)
@@ -155,7 +155,8 @@ def dashboard(request):
     profile = request.user.profile
 
     if profile.role == 'Admin':
-        return redirect('dashboard_admin') # Perlu didefinisikan di urls.py Anda
+        # Perlu didefinisikan di urls.py Anda
+        return redirect('dashboard_admin')
     elif profile.role == 'Editor':
         return redirect('dashboard_editor')
     elif profile.role == 'Pembuat':
@@ -166,7 +167,8 @@ def dashboard(request):
 
 @login_required
 def dashboard_pembuat(request):
-    if request.user.profile.role != 'Pembuat':
+    # Memastikan pengguna memiliki atribut 'profile' sebelum mengaksesnya
+    if not hasattr(request.user, 'profile') or request.user.profile.role != 'Pembuat':
         messages.error(request, 'Anda tidak memiliki izin untuk mengakses halaman ini.')
         return redirect('arsip:beranda')
 
@@ -180,14 +182,15 @@ def dashboard_pembuat(request):
 
 @login_required
 def dashboard_editor(request):
-    if request.user.profile.role not in ['Admin', 'Editor']:
+    # Memastikan pengguna memiliki atribut 'profile' sebelum mengaksesnya
+    if not hasattr(request.user, 'profile') or request.user.profile.role not in ['Admin', 'Editor']:
         messages.error(request, 'Anda tidak memiliki izin untuk mengakses halaman ini.')
         return redirect('arsip:beranda')
 
     arsip_pending = Arsip.objects.filter(status_verifikasi='pending').count()
     arsip_diverifikasi = Arsip.objects.filter(
         Q(verifikator=request.user) | Q(status_verifikasi='diterima')
-    ).order_by('-tanggal_verifikasi')[:5] # Menampilkan arsip yang diverifikasi oleh user atau yang sudah diterima
+    ).order_by('-tanggal_verifikasi')[:5]
 
     return render(request, 'arsip/dashboard_editor.html', {
         'arsip_pending': arsip_pending,
@@ -201,15 +204,18 @@ class ArsipViewSet(viewsets.ModelViewSet):
     filterset_fields = ['kategori', 'status_akses']
 
 def beranda(request):
-    # Membatasi arsip terbaru hingga 6
-    arsip_terbaru = Arsip.objects.filter(
-        status_verifikasi='diterima'
-    ).order_by('-tanggal_diterima')[:6] # Ditambahkan slicing [:6]
+    # Mulai dengan arsip yang sudah diverifikasi
+    arsip_terbaru_queryset = Arsip.objects.filter(status_verifikasi='diterima')
 
-    # Membatasi kategori populer hingga 4
+    # Jika pengguna tidak login, hanya tampilkan arsip publik
+    if not request.user.is_authenticated:
+        arsip_terbaru_queryset = arsip_terbaru_queryset.filter(status_akses='publik')
+
+    arsip_terbaru = arsip_terbaru_queryset.order_by('-tanggal_diterima')[:6]
+
     kategori_populer = Kategori.objects.annotate(
         jumlah_arsip=Count('arsip')
-    ).order_by('-jumlah_arsip')[:4] # Ditambahkan slicing [:4]
+    ).order_by('-jumlah_arsip')[:4]
 
     return render(request, 'arsip/beranda.html', {
         'arsip_terbaru': arsip_terbaru,
@@ -217,22 +223,35 @@ def beranda(request):
     })
 
 def daftar_arsip(request):
-    arsip_list = Arsip.objects.filter(status_verifikasi='diterima', status_akses='publik')
-    kategori_id = request.GET.get('kategori')
-    status_akses_filter = request.GET.get('status_akses')
+    # Mulai dengan semua arsip yang sudah diverifikasi
+    arsip_list = Arsip.objects.filter(status_verifikasi='diterima')
     
+    kategori_id = request.GET.get('kategori')
+    status_akses_filter = request.GET.get('status_akses') 
+
+    # Filter berdasarkan kategori jika ada
     if kategori_id:
         arsip_list = arsip_list.filter(kategori_id=kategori_id)
     
+    # Perbaikan: Awalnya filter ini di dalam `if request.user.is_authenticated:`
+    # Sekarang kita proses status_akses_filter terlebih dahulu.
     if status_akses_filter:
-        arsip_list = arsip_list.filter(status_akses=status_akses_filter)
-
-    if request.user.is_authenticated:
-        if status_akses_filter == 'internal':
-            arsip_list = Arsip.objects.filter(
-                status_verifikasi='diterima',
-                status_akses='internal'
-            )
+        if status_akses_filter == 'publik':
+            arsip_list = arsip_list.filter(status_akses='publik')
+        elif status_akses_filter == 'internal':
+            # Pastikan user terautentikasi dan memiliki profil sebelum mengakses role
+            if request.user.is_authenticated and hasattr(request.user, 'profile'):
+                arsip_list = arsip_list.filter(status_akses='internal')
+            else:
+                # Jika user mencoba mengakses internal tapi tidak login/tidak punya profil
+                messages.warning(request, "Anda harus login untuk melihat arsip internal.")
+                arsip_list = arsip_list.none() # Atau bisa juga redirect ke login page
+    else:
+        # Default behavior ketika tidak ada filter status_akses:
+        if not request.user.is_authenticated:
+            # Jika tidak login, defaultnya hanya tampilkan publik
+            arsip_list = arsip_list.filter(status_akses='publik')
+        # Jika login dan tidak ada filter status_akses, biarkan arsip_list apa adanya (publik dan internal)
 
     arsip_list = arsip_list.order_by('-tanggal_diterima')
     paginator = Paginator(arsip_list, 10)
@@ -261,7 +280,8 @@ def detail_arsip(request, arsip_id):
 def edit_arsip(request, arsip_id):
     arsip = get_object_or_404(Arsip, id=arsip_id)
     
-    if not (request.user.profile.role == 'Admin' or request.user.profile.role == 'Editor' or request.user == arsip.dibuat_oleh):
+    # Memastikan pengguna memiliki atribut 'profile' sebelum mengaksesnya
+    if not (request.user.is_authenticated and hasattr(request.user, 'profile') and (request.user.profile.role == 'Admin' or request.user.profile.role == 'Editor' or request.user == arsip.dibuat_oleh)):
         messages.error(request, "Anda tidak memiliki izin untuk mengedit arsip ini!")
         return redirect('arsip:detail_arsip', arsip_id=arsip.id)
 
@@ -292,7 +312,8 @@ def edit_arsip(request, arsip_id):
 def hapus_arsip(request, arsip_id):
     arsip = get_object_or_404(Arsip, id=arsip_id)
     
-    if not is_admin_or_arsip_owner(request.user, arsip):
+    # Memastikan pengguna memiliki atribut 'profile' sebelum mengaksesnya
+    if not (request.user.is_authenticated and hasattr(request.user, 'profile') and (request.user.profile.role == 'Admin' or request.user == arsip.dibuat_oleh)):
         messages.error(request, "Anda tidak memiliki izin untuk menghapus arsip ini!")
         return redirect('arsip:detail_arsip', arsip_id=arsip.id)
     
@@ -333,12 +354,30 @@ def kategori_list(request):
 
 def arsip_per_kategori(request, kategori_id):
     kategori = get_object_or_404(Kategori, id=kategori_id)
-    arsip_list = Arsip.objects.filter(kategori=kategori, status_verifikasi='diterima', status_akses='publik')
     
-    if request.user.is_authenticated:
-        status_filter = request.GET.get('status')
-        if status_filter == 'internal':
-            arsip_list = Arsip.objects.filter(kategori=kategori, status_verifikasi='diterima', status_akses='internal')
+    # Filter awal: Hanya arsip yang sudah diterima (diterima)
+    arsip_list = Arsip.objects.filter(kategori=kategori, status_verifikasi='diterima')
+    
+    # Ambil status akses filter dari URL (misalnya ?status_akses=internal)
+    status_akses_filter = request.GET.get('status_akses') 
+
+    if status_akses_filter:
+        if status_akses_filter == 'publik':
+            arsip_list = arsip_list.filter(status_akses='publik')
+        elif status_akses_filter == 'internal':
+            # Hanya tampilkan internal jika user terautentikasi dan memiliki profil
+            if request.user.is_authenticated and hasattr(request.user, 'profile'):
+                arsip_list = arsip_list.filter(status_akses='internal')
+            else:
+                messages.warning(request, "Anda harus login untuk melihat arsip internal di kategori ini.")
+                arsip_list = arsip_list.none() # Kosongkan queryset jika tidak ada akses
+    else:
+        # Perubahan di sini: Jika tidak ada filter status_akses di URL
+        if not request.user.is_authenticated:
+            # Jika tidak login, default ke hanya publik
+            arsip_list = arsip_list.filter(status_akses='publik')
+        # Jika login, dan tidak ada filter status_akses, biarkan arsip_list apa adanya (publik dan internal)
+        # Artinya, user yang login bisa melihat arsip publik dan internal secara bersamaan di daftar kategori.
 
     arsip_list = arsip_list.order_by('-tanggal_diterima')
 
@@ -349,13 +388,13 @@ def arsip_per_kategori(request, kategori_id):
 
 def cari_arsip(request):
     query = request.GET.get('q', '')
-    status_filter = request.GET.get('status', 'publik')
+    status_filter = request.GET.get('status_akses', 'publik') # Ubah dari 'status' ke 'status_akses'
     
     results = Arsip.objects.filter(
         Q(judul_arsip__icontains=query) |
         Q(deskripsi__icontains=query) |
         Q(kategori__nama__icontains=query)
-    )
+    ).filter(status_verifikasi='diterima') # Pastikan hanya yang sudah diverifikasi
 
     if not request.user.is_authenticated:
         results = results.filter(status_akses='publik')
@@ -364,6 +403,8 @@ def cari_arsip(request):
             results = results.filter(status_akses='internal')
         elif status_filter == 'publik':
             results = results.filter(status_akses='publik')
+        # Jika user login dan status_filter kosong (default), biarkan semua (publik dan internal)
+
             
     results = results.order_by('-tanggal_diterima')
 
@@ -395,7 +436,7 @@ class VerifikasiArsipView(LoginRequiredMixin, VerifikasiRequiredMixin, ListView)
         return queryset
 
     def dispatch(self, request, *args, **kwargs):
-        if not request.user.is_authenticated or request.user.profile.role not in ['Admin', 'Editor']:
+        if not request.user.is_authenticated or not hasattr(request.user, 'profile') or request.user.profile.role not in ['Admin', 'Editor']:
             messages.error(request, 'Anda tidak memiliki izin untuk mengakses halaman verifikasi.')
             return redirect('arsip:beranda')
         return super().dispatch(request, *args, **kwargs)
@@ -415,7 +456,7 @@ class VerifikasiDetailView(LoginRequiredMixin, VerifikasiRequiredMixin, UpdateVi
         return response
 
     def dispatch(self, request, *args, **kwargs):
-        if not request.user.is_authenticated or request.user.profile.role not in ['Admin', 'Editor']:
+        if not request.user.is_authenticated or not hasattr(request.user, 'profile') or request.user.profile.role not in ['Admin', 'Editor']:
             messages.error(request, 'Anda tidak memiliki izin untuk mengakses halaman verifikasi.')
             return redirect('arsip:beranda')
         return super().dispatch(request, *args, **kwargs)
@@ -436,7 +477,7 @@ def statistik_context(request):
 
 @login_required
 def upload_arsip(request):
-    if request.user.profile.role not in ['Admin', 'Pembuat']:
+    if not hasattr(request.user, 'profile') or request.user.profile.role not in ['Admin', 'Pembuat']:
         messages.error(request, 'Anda tidak memiliki izin untuk mengupload arsip.')
         return redirect('arsip:daftar_arsip')
     if request.method == 'POST':
@@ -445,6 +486,7 @@ def upload_arsip(request):
             arsip = form.save(commit=False)
             arsip.dibuat_oleh = request.user
             arsip.tanggal_diterima = timezone.now().date()
+            arsip.status_verifikasi = 'pending'
             arsip.save()
             form.save_m2m()
             messages.success(request, 'Arsip berhasil diupload dan menunggu verifikasi.')

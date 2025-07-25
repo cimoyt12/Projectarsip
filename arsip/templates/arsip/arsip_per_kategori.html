@@ -7,6 +7,28 @@
 <h1 class="mb-4">Arsip Kategori: {{ kategori.nama }}</h1>
 <p class="text-muted mb-4">{{ kategori.deskripsi }}</p>
 
+{# Tambahkan filter status akses di sini #}
+{% if user.is_authenticated %}
+<div class="mb-4">
+    <h5>Tampilkan Berdasarkan Akses</h5>
+    <div class="list-group list-group-horizontal-sm"> {# Menggunakan horizontal untuk tampilan samping #}
+        <a href="{% url 'arsip:arsip_per_kategori' kategori.id %}?status_akses=publik" 
+           class="list-group-item list-group-item-action {% if request.GET.status_akses == 'publik' %}active{% endif %}"> {# Perubahan ada di baris ini #}
+            Publik
+        </a>
+        <a href="{% url 'arsip:arsip_per_kategori' kategori.id %}?status_akses=internal" 
+           class="list-group-item list-group-item-action {% if request.GET.status_akses == 'internal' %}active{% endif %}">
+            Internal
+        </a>
+        {# Opsional: Tombol untuk melihat semua (publik + internal) jika login #}
+        <a href="{% url 'arsip:arsip_per_kategori' kategori.id %}" 
+           class="list-group-item list-group-item-action {% if not request.GET.status_akses and user.is_authenticated %}active{% endif %}">
+            Semua (Publik & Internal)
+        </a>
+    </div>
+</div>
+{% endif %}
+
 {% if arsip_list %}
 <div class="row row-cols-1 row-cols-md-3 g-4">
     {% for arsip in arsip_list %}

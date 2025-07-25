@@ -59,7 +59,8 @@
         <div class="card">
             <div class="card-header bg-light">
                 <div class="d-flex justify-content-between align-items-center">
-                    <span> Menampilkan: {{ total_arsip|default:'0' }} data Arsip</span>
+                    {# Perubahan di baris ini #}
+                    <span> Menampilkan: {{ page_obj.object_list|length }} dari {{ page_obj.paginator.count }} data Arsip</span>
                     <div class="d-flex">
                         <select class="form-select me-2">
                             <option>Urutkan Terbaru</option>
@@ -96,13 +97,15 @@
                     <ul class="pagination justify-content-center">
                         {% if page_obj.has_previous %}
                         <li class="page-item">
-                            <a class="page-link" href="?page={{ page_obj.previous_page_number }}">Sebelumnya</a>
+                            {# Pastikan parameter filter juga ikut di pagination #}
+                            <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if request.GET.kategori %}&kategori={{ request.GET.kategori }}{% endif %}{% if request.GET.status_akses %}&status_akses={{ request.GET.status_akses }}{% endif %}">Sebelumnya</a>
                         </li>
                         {% endif %}
                         <li class="page-item active"><a class="page-link" href="#">{{ page_obj.number }}</a></li>
                         {% if page_obj.has_next %}
                         <li class="page-item">
-                            <a class="page-link" href="?page={{ page_obj.next_page_number }}">Berikutnya</a>
+                            {# Pastikan parameter filter juga ikut di pagination #}
+                            <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if request.GET.kategori %}&kategori={{ request.GET.kategori }}{% endif %}{% if request.GET.status_akses %}&status_akses={{ request.GET.status_akses }}{% endif %}">Berikutnya</a>
                         </li>
                         {% endif %}
                     </ul>
